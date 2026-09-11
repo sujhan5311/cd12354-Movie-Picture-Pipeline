@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches: [ "main" ]
-    paths: [ "frontend/**" ]
+    paths: [ "starter/frontend/**" ]
   workflow_dispatch:
 
 jobs:
@@ -22,4 +22,4 @@ jobs:
     - name: Connect to EKS Cluster
       run: aws eks update-kubeconfig --name cluster --region us-east-1
     - name: Deploy to Kubernetes
-      run: kubectl apply -f frontend/
+      run: kubectl apply -f starter/frontend/k8s/

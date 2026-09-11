@@ -3,7 +3,7 @@ name: Deploy Backend
 on:
   push:
     branches: [ "main" ]
-    paths: [ "setup/backend/**" ]
+    paths: [ "starter/backend/**" ]
   workflow_dispatch:
 
 jobs:
@@ -22,4 +22,4 @@ jobs:
     - name: Connect to EKS Cluster
       run: aws eks update-kubeconfig --name cluster --region us-east-1
     - name: Deploy to Kubernetes
-      run: kubectl apply -f setup/backend/
+      run: kubectl apply -f starter/backend/k8s/
