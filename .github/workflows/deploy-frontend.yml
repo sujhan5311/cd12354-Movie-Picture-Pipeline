@@ -22,4 +22,4 @@ jobs:
     - name: Connect to EKS Cluster
       run: aws eks update-kubeconfig --name cluster --region us-east-1
     - name: Deploy to Kubernetes
-      run: kubectl apply -f starter/frontend/k8s/
+      run: kubectl apply -k starter/frontend/k8s/
