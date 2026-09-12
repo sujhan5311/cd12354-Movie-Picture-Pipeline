@@ -1,19 +1,19 @@
-name: Frontend Continuous Deployment
+name: Backend Continuous Deployment
 
 on:
   push:
     branches: [main]
     paths:
-      - 'starter/frontend/**'
-      - '.github/workflows/frontend-cd.yml'
+      - 'starter/backend/**'
+      - '.github/workflows/backend-cd.yaml'
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18.14'
-  WORKING_DIR: starter/frontend
+  PYTHON_VERSION: '3.10'
+  WORKING_DIR: starter/backend
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: cluster
-  ECR_REPOSITORY: frontend
+  ECR_REPOSITORY: backend
 
 jobs:
   lint:
@@ -23,20 +23,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup NodeJS
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: starter/frontend/package-lock.json
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore pipenv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-
+
+      - name: Install pipenv
+        run: pip install pipenv
 
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm ci
+        run: pipenv install --dev
 
       - name: Run linter
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm run lint
+        run: pipenv run lint
 
   test:
     name: Test
@@ -45,20 +53,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup NodeJS
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: starter/frontend/package-lock.json
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore pipenv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-
+
+      - name: Install pipenv
+        run: pip install pipenv
 
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
-        run: npm ci
+        run: pipenv install --dev
 
       - name: Run tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: CI=true npm test
+        run: pipenv run test
 
   build-and-deploy:
     name: Build and Deploy
@@ -80,35 +96,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Configure kubeconfig for the EKS cluster
-        run: aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
-
-      - name: Resolve the backend API URL from the cluster
-        id: api
-        run: |
-          # The frontend bakes the API URL in at build time, so read the backend
-          # service's external hostname from the cluster before building.
-          BACKEND_HOST=$(kubectl get svc backend \
-            -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
-          if [ -z "$BACKEND_HOST" ]; then
-            echo "::warning::backend LoadBalancer hostname not found; falling back to localhost"
-            API_URL="http://localhost:5000"
-          else
-            API_URL="http://${BACKEND_HOST}"
-          fi
-          echo "Using API URL: $API_URL"
-          echo "url=$API_URL" >> "$GITHUB_OUTPUT"
-
       - name: Build and push image tagged with the git SHA
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-          API_URL: ${{ steps.api.outputs.url }}
         working-directory: ${{ env.WORKING_DIR }}
         run: |
-          docker build \
-            --build-arg=REACT_APP_MOVIE_API_URL="$API_URL" \
-            --tag="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+          docker build --tag="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
           docker push "$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Install kustomize
@@ -117,13 +111,16 @@ jobs:
           sudo mv kustomize /usr/local/bin/
           kustomize version
 
+      - name: Configure kubeconfig for the EKS cluster
+        run: aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$AWS_REGION"
+
       - name: Deploy manifests to the cluster
         env:
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         working-directory: ${{ env.WORKING_DIR }}/k8s
         run: |
-          kustomize edit set image frontend="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          kustomize edit set image backend="$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
           kustomize build | kubectl apply -f -
-          kubectl rollout status deployment/frontend --timeout=300s
-          kubectl get svc frontend -o wide
+          kubectl rollout status deployment/backend --timeout=300s
+          kubectl get svc backend -o wide

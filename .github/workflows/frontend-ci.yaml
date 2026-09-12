@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'starter/frontend/**'
-      - '.github/workflows/frontend-ci.yml'
+      - '.github/workflows/frontend-ci.yaml'
   workflow_dispatch:
 
 env:
@@ -24,8 +24,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: starter/frontend/package-lock.json
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('starter/frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
@@ -46,8 +51,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: starter/frontend/package-lock.json
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('starter/frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
 
       - name: Install dependencies
         working-directory: ${{ env.WORKING_DIR }}
@@ -55,7 +65,7 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ env.WORKING_DIR }}
-        run: CI=true npm test
+        run: CI=true npm run test
 
   build:
     name: Build
@@ -64,6 +74,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore npm cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('starter/frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ${{ env.WORKING_DIR }}
+        run: CI=true npm run test
 
       - name: Build application image
         working-directory: ${{ env.WORKING_DIR }}

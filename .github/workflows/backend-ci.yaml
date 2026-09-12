@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'starter/backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - '.github/workflows/backend-ci.yaml'
   workflow_dispatch:
 
 env:
@@ -24,6 +24,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore pipenv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-
 
       - name: Install pipenv
         run: pip install pipenv
@@ -48,6 +55,13 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Restore pipenv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-
+
       - name: Install pipenv
         run: pip install pipenv
 
@@ -66,6 +80,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore pipenv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('starter/backend/Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-
+
+      - name: Install pipenv
+        run: pip install pipenv
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: pipenv install --dev
+
+      - name: Run tests
+        working-directory: ${{ env.WORKING_DIR }}
+        run: pipenv run test
 
       - name: Build application image
         working-directory: ${{ env.WORKING_DIR }}
