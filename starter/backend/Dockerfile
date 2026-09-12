@@ -17,6 +17,10 @@ RUN apk update && \
 RUN mkdir -p /var/www/app && mkdir /app
 
 COPY Pipfile* /app
+# uwsgi's C sources predate GCC 14, which promotes incompatible pointer types
+# from a warning to an error. Demote it so the wheel still builds.
+ENV CFLAGS="-Wno-error=incompatible-pointer-types"
+
 RUN cd /app && pipenv install --system --deploy
 
 COPY . /app
