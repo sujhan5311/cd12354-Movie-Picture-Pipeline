@@ -1,5 +1,33 @@
 # Movie Picture Pipeline
 
+## Submission
+
+**Public repository:** https://github.com/sujhan5311/cd12354-Movie-Picture-Pipeline
+
+### Workflows
+
+All four live under `.github/workflows/`:
+
+| Workflow | File | Latest successful run |
+| --- | --- | --- |
+| Frontend Continuous Integration | `.github/workflows/frontend-ci.yaml` | https://github.com/sujhan5311/cd12354-Movie-Picture-Pipeline/actions/runs/34709040866 |
+| Backend Continuous Integration | `.github/workflows/backend-ci.yaml` | https://github.com/sujhan5311/cd12354-Movie-Picture-Pipeline/actions/runs/34709040858 |
+| Frontend Continuous Deployment | `.github/workflows/frontend-cd.yaml` | https://github.com/sujhan5311/cd12354-Movie-Picture-Pipeline/actions/runs/34709030703 |
+| Backend Continuous Deployment | `.github/workflows/backend-cd.yaml` | https://github.com/sujhan5311/cd12354-Movie-Picture-Pipeline/actions/runs/34709030702 |
+
+Continuous Integration runs on pull requests against `main`; the pull request
+used to exercise both CI workflows is
+https://github.com/sujhan5311/cd12354-Movie-Picture-Pipeline/pull/2.
+Continuous Deployment runs on pushes to `main`. All four can also be started
+manually through `workflow_dispatch`.
+
+Both applications deploy as the image tag `fd9da04f509ed49f0d2ee04bda14d6c13b289517`,
+which is the git SHA of the commit that triggered the build.
+
+### Application URLs
+
+<!-- URLS -->
+
 You've been brought on as the DevOps resource for a development team that manages a web application that is a catalog of Movie Picture movies. They're in dire need of automating their development workflows in hopes of accelerating their release cycle. They'd like to use Github Actions to automate testing, building and deploying their applications to an existing Kubernetes cluster.
 
 The team's project is comprised of 2 applications.
